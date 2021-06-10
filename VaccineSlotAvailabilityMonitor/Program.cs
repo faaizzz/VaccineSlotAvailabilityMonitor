@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Media;
 using System.Threading;
+using VaccineSlotAvailabilityMonitor.Extentions;
 
 namespace VaccineSlotAvailabilityMonitor
 {
@@ -40,15 +41,20 @@ namespace VaccineSlotAvailabilityMonitor
             {
                 if(repo.available_capacity > 0)
                 {
-                    // Console.Beep(32767,2000);
-                    if(repo.available_capacity == 1)
+                    if(repo.pincode == 683565)
                     {
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        Console.WriteLine("White on blue.");
+                    Console.Beep(32767,2000);
 
                     }
+                    if(repo.available_capacity == 1)
+                    {
+                    }
                     Console.WriteLine("Address : " + repo.address);
-                    Console.WriteLine("Available : " + repo.available_capacity);
+                    Console.WriteLine("Total Available : " + repo.available_capacity);
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("Dose 1 : " + repo.available_capacity_dose1);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Dose 2 : " + repo.available_capacity_dose2);
                     Console.WriteLine("Age Limit : " + repo.min_age_limit);
                     Console.WriteLine("Pin Code : " + repo.pincode);
                     Console.WriteLine("Vaccine : " + repo.vaccine);
@@ -78,24 +84,25 @@ namespace VaccineSlotAvailabilityMonitor
 
         private static async Task<Root> VaccineRepositories()
         {
+            Root Result = new Root();
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
             client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository Reporter");
 
-            var streamTask = client.GetStreamAsync("https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByDistrict?district_id=307&date=11-06-2021");
-            var root = await JsonSerializer.DeserializeAsync<Root>(await streamTask);
- 
-            // var streamTask1 = client.GetStreamAsync("https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByDistrict?district_id=307&date=10-06-2021");
-            // var root1 = await JsonSerializer.DeserializeAsync<Root>(await streamTask);
- 
-            // var streamTask2 = client.GetStreamAsync("https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByDistrict?district_id=307&date=12-06-2021");
-            // var root2 = await JsonSerializer.DeserializeAsync<Root>(await streamTask);
-            // root.sessions.AddRange(root1.sessions);
-            // // root.sessions.AddRange(root2.sessions);
+            var streamTaskToday = client.GetStreamAsync("https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByDistrict?district_id=307&date=10-06-2021");
+            var today = await JsonSerializer.DeserializeAsync<Root>(await streamTaskToday);
 
+            var streamTaskTomorrow = client.GetStreamAsync("https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByDistrict?district_id=307&date=11-06-2021");
+            var tomorrow = await JsonSerializer.DeserializeAsync<Root>(await streamTaskTomorrow);
+ 
+ 
+            var streamTaskDayAfterTomorrow = client.GetStreamAsync("https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByDistrict?district_id=307&date=12-06-2021");
+            var dayAfterTomorrow = await JsonSerializer.DeserializeAsync<Root>(await streamTaskDayAfterTomorrow);
 
-            return root;
+            Result.sessions = tomorrow.sessions.Join(today.sessions);
+            Result.sessions = Result.sessions.Join(dayAfterTomorrow.sessions);
+            return Result;
         }
     }
 }
